@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import json
+import io
 
 st.title("🎵 Spotify Artist Catalog Metadata Extractor")
 st.write("Extract complete metadata for any Spotify artist's catalog")
@@ -38,15 +39,30 @@ if st.button("Extract Metadata", type="primary"):
                         with col2:
                             st.metric("Total Tracks", metadata["totalTracks"])
                         with col3:
-                            st.metric("Genre", metadata["genre"])
+                            st.metric("Genre", metadata.get("genre", "Unknown"))
                         
-                        # Download button
+                        # Download button with actual CSV content
                         st.write("### 📥 Download Your Spreadsheet")
                         st.write(data["data"]["summary"])
                         
-                        # Note: The downloadUrl contains the file path, you'll need to 
-                        # implement file serving or use a different approach for downloads
-                        st.info("💡 Your CSV file has been generated. Contact support for download access.")
+                        # Get CSV content from response
+                        csv_content = data["data"]["csvContent"]
+                        filename = data["data"]["filename"]
+                        
+                        # Create download button
+                        st.download_button(
+                            label="📄 Download CSV File",
+                            data=csv_content,
+                            file_name=filename,
+                            mime="text/csv",
+                            type="primary"
+                        )
+                        
+                        # Show preview of first few rows
+                        st.write("### 👀 Preview (First 5 Rows)")
+                        lines = csv_content.split('\n')
+                        preview = '\n'.join(lines[:6])  # Header + 5 rows
+                        st.code(preview, language="csv")
                         
                     else:
                         st.error("❌ Failed to extract metadata")
@@ -58,11 +74,7 @@ if st.button("Extract Metadata", type="primary"):
                 st.error(f"❌ Network error: {str(e)}")
             except json.JSONDecodeError:
                 st.error("❌ Invalid response format")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
     else:
         st.warning("⚠️ Please enter a Spotify artist URL")
-
-# Example URLs
-st.write("### 🎯 Example Artist URLs")
-st.code("https://open.spotify.com/artist/4dpARuHxo51G3z768sgnrY  # Adele")
-st.code("https://open.spotify.com/artist/1Xyo4u8uXC1ZmMpatF05PJ  # The Weeknd")
-st.code("https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02  # Taylor Swift")
